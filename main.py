@@ -4,7 +4,7 @@ import numpy as np
 # Size constants
 kEyePercentTop = 25;
 kEyePercentSide = 13;
-kEyePercentHeight = 30;
+kEyePercentHeight = 20;
 kEyePercentWidth = 35;
 
 # Algorithm Parameters
