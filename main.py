@@ -37,13 +37,13 @@ def main():
         ret, img = cap.read()
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale( gray, 1.1, 2, 0, (150, 150) );
+        faces = face_cascade.detectMultiScale(gray, 1.1, 2, 0, (150, 150))
         for(x,y,w,h) in faces:
             cv2.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 1)
-
+        
         if(len(faces) > 0):
             findEyes(gray, faces[0])
-
+        
         cv2.imshow("gray", gray)
         cv2.imshow("main", img)
         k = cv2.waitKey(10) & 0xFF
@@ -65,6 +65,24 @@ def findEyes(gray, face):
     rightEyeRegion = (int(w - eye_region_width - w*(kEyePercentSide/100.0)), int(eye_region_top), int(eye_region_width), int(eye_region_height))
     leftPupil = findEyeCenter(faceROI, leftEyeRegion)
     rightPupil = findEyeCenter(faceROI, rightEyeRegion)
+
+    # Test HoughtCircles with left eye
+    # TODO: Thresold eye region to get eye pupil
+    # then use HoughCircles to detect open/closed eye
+    ex,ey,ew,eh = leftEyeRegion
+    leftEyeROI = faceROI[ey:ey+eh, ex:ex+ew]
+    circles = cv2.HoughCircles(leftEyeROI,cv2.HOUGH_GRADIENT,2,300,param1=30,param2=10,minRadius=0,maxRadius=0)
+    print circles
+    if circles is not None:
+        circles = np.uint16(np.around(circles))
+        for (x, y, r) in circles[0,:]:
+            # draw the outer circle
+            # cv2.circle(leftEyeROI,(i[0],i[1]),i[2],(0,255,0),2)
+            # draw the center of the circle
+            # cv2.circle(leftEyeROI,(i[0],i[1]),2,(0,0,255),3)
+            cv2.circle(leftEyeROI, (x, y), r, (0, 255, 0), 2)
+    cv2.imshow("test", leftEyeROI)
+    cv2.resizeWindow("test", 500, 500)
 
 def findEyeCenter(face, eye):
     ex,ey,ew,eh = eye
