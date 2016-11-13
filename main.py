@@ -1,18 +1,19 @@
 import cv2
+import cv2.cv as cv
 import numpy as np
 
 # Size constants
-kEyePercentTop = 25;
-kEyePercentSide = 13;
-kEyePercentHeight = 20;
-kEyePercentWidth = 35;
+kEyePercentTop = 25
+kEyePercentSide = 13
+kEyePercentHeight = 20
+kEyePercentWidth = 35
 
 # Algorithm Parameters
-kFastEyeWidth = 50;
-kWeightBlurSize = 5;
-kEnableWeight = True;
-kWeightDivisor = 1.0;
-kGradientThreshold = 50.0;
+kFastEyeWidth = 50
+kWeightBlurSize = 5
+kEnableWeight = True
+kWeightDivisor = 1.0
+kGradientThreshold = 50.0
 
 # Window
 MAIN_WINDOW_NAME = "main"
@@ -38,12 +39,12 @@ def main():
 
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.1, 2, 0, (150, 150))
-        for(x,y,w,h) in faces:
-            cv2.rectangle(img, (x,y), (x+w, y+h), (255,0,0), 1)
-        
-        if(len(faces) > 0):
-            findEyes(gray, faces[0])
-        
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img, (x, y), (x + w, y + h), (255, 0, 0), 1)
+
+        if len(faces) > 0:
+            find_eyes(gray, faces[0])
+
         cv2.imshow("gray", gray)
         cv2.imshow("main", img)
         k = cv2.waitKey(10) & 0xFF
@@ -54,28 +55,40 @@ def main():
             cv2.flip(frame, frame, 1)
     cv2.destroyAllWindows()
 
-def findEyes(gray, face):
-    x,y,w,h = face
+def find_eyes(gray, face):
+    (x, y, w, h) = face
     faceROI = gray[y:y+h, x:x+h]
-    debugFace = faceROI
-    eye_region_width = w * (kEyePercentWidth/100.0);
-    eye_region_height = w * (kEyePercentHeight/100.0);
-    eye_region_top = h * (kEyePercentTop/100.0);
+    eye_region_width = w * (kEyePercentWidth/100.0)
+    eye_region_height = w * (kEyePercentHeight/100.0)
+    eye_region_top = h * (kEyePercentTop/100.0)
     leftEyeRegion = (int(w * (kEyePercentSide/100.0)), int(eye_region_top), int(eye_region_width), int(eye_region_height))
     rightEyeRegion = (int(w - eye_region_width - w*(kEyePercentSide/100.0)), int(eye_region_top), int(eye_region_width), int(eye_region_height))
-    leftPupil = findEyeCenter(faceROI, leftEyeRegion)
-    rightPupil = findEyeCenter(faceROI, rightEyeRegion)
+    leftPupil = find_eye_center(faceROI, leftEyeRegion)
+    rightPupil = find_eye_center(faceROI, rightEyeRegion)
 
     # Test HoughtCircles with left eye
     # TODO: Thresold eye region to get eye pupil
     # then use HoughCircles to detect open/closed eye
-    ex,ey,ew,eh = leftEyeRegion
+    # Read more here: http://answers.opencv.org/question/32688/finding-the-center-of-eye-pupil/
+    ex, ey, ew, eh = leftEyeRegion
     leftEyeROI = faceROI[ey:ey+eh, ex:ex+ew]
-    circles = cv2.HoughCircles(leftEyeROI,cv2.HOUGH_GRADIENT,2,300,param1=30,param2=10,minRadius=0,maxRadius=0)
-    print circles
+    # circles = cv2.HoughCircles(leftEyeROI,cv.CV_HOUGH_GRADIENT,2,300,param1=30,param2=10,minRadius=0,maxRadius=0)
+
+
+    (T, thresh) = cv2.threshold(leftEyeROI, 60, 255, cv2.THRESH_BINARY)
+    thresh = cv2.GaussianBlur(thresh, (3, 3), 0)
+    kernel = np.ones((7, 7), np.uint8)
+    thresh = cv2.dilate(thresh, kernel, iterations=1)
+    thresh = cv2.erode(thresh, kernel, iterations=1)
+    # thresh = cv2.GaussianBlur(thresh, (7, 7), 0)
+    cv2.imshow("test2", thresh)
+
+    circles = cv2.HoughCircles(thresh, cv.CV_HOUGH_GRADIENT, 2, 300,
+                               param1=30, param2=10, minRadius=0, maxRadius=0)
+
     if circles is not None:
         circles = np.uint16(np.around(circles))
-        for (x, y, r) in circles[0,:]:
+        for (x, y, r) in circles[0, :]:
             # draw the outer circle
             # cv2.circle(leftEyeROI,(i[0],i[1]),i[2],(0,255,0),2)
             # draw the center of the circle
@@ -84,11 +97,11 @@ def findEyes(gray, face):
     cv2.imshow("test", leftEyeROI)
     cv2.resizeWindow("test", 500, 500)
 
-def findEyeCenter(face, eye):
-    ex,ey,ew,eh = eye
-    eyeROIUnscaled = face[ey:ey+eh, ex: ex+ew]
+def find_eye_center(face, eye):
+    ex, ey, ew, eh = eye
+    eyeROIUnscaled = face[ey:ey+eh, ex:ex+ew]
     # TODO: scale eye region
-    cv2.rectangle(face, (ex, ey), (ex+ew, ey+eh), (255,0,0), 1)
+    cv2.rectangle(face, (ex, ey), (ex + ew, ey + eh), (255, 0, 0), 1)
     return None
 
 
